@@ -5,3 +5,5 @@
 /pkg
 
 *.gem
+
+/tmp

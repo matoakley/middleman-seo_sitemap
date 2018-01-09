@@ -11,12 +11,13 @@ module Middleman
       option :directory_indexes_enabled, true, 'Whether the application is using directory indexes'
 
       def manipulate_resource_list(resources)
-        tmp_path = File.expand_path '../../../tmp/sitemap'
+        tmp_path = File.expand_path '../../../tmp/sitemap', __FILE__
 
         SitemapGenerator::Sitemap.default_host = options.default_host
         SitemapGenerator::Sitemap.public_path = tmp_path
         SitemapGenerator::Sitemap.include_root = false
         SitemapGenerator::Sitemap.compress = false
+        SitemapGenerator::Sitemap.create
 
         app.sitemap.resources.select{ |r| r.content_type && r.content_type.include?("html") }.each do |r|
           url = if options.directory_indexes_enabled && r.url != '/'
@@ -30,6 +31,8 @@ module Middleman
                                         priority: r.data.fetch(:priority, options.priority),
                                         lastmod: File.mtime(r.source_file),
                                         host: r.data.fetch(:host, options.default_host)
+
+          logger.info "== added #{url} to sitemap =="
         end
 
         SitemapGenerator::Sitemap.finalize!
