@@ -13,29 +13,35 @@ module Middleman
       def manipulate_resource_list(resources)
         tmp_path = File.expand_path '../../../tmp/sitemap', __FILE__
 
+        pages =
+          app.sitemap.resources.select{ |r| r.content_type && r.content_type.include?("html") }.map do |r|
+            url = if options.directory_indexes_enabled && r.url != '/'
+                    r.url.chomp('.html') + '/'
+                  else
+                    r.url
+                  end
+            {
+              url: url,
+              changefreq: r.data.fetch(:changefreq, options.changefreq),
+              priority: r.data.fetch(:priority, options.priority),
+              lastmod: File.mtime(r.source_file),
+              host: r.data.fetch(:host, options.default_host)
+            }
+          end
+
         SitemapGenerator::Sitemap.default_host = options.default_host
         SitemapGenerator::Sitemap.public_path = tmp_path
         SitemapGenerator::Sitemap.include_root = false
         SitemapGenerator::Sitemap.compress = false
-        SitemapGenerator::Sitemap.create
-
-        app.sitemap.resources.select{ |r| r.content_type && r.content_type.include?("html") }.each do |r|
-          url = if options.directory_indexes_enabled && r.url != '/'
-                  r.url.chomp('.html') + '/'
-                else
-                  r.url
-                end
-
-          SitemapGenerator::Sitemap.add url,
-                                        changefreq: r.data.fetch(:changefreq, options.changefreq),
-                                        priority: r.data.fetch(:priority, options.priority),
-                                        lastmod: File.mtime(r.source_file),
-                                        host: r.data.fetch(:host, options.default_host)
-
-          logger.info "== added #{url} to sitemap =="
+        SitemapGenerator::Sitemap.create do
+          pages.each do |p|
+            add p[:url],
+                changefreq: p[:changefreq],
+                priority: p[:priority],
+                lastmod: p[:lastmod],
+                host: p[:host]
+          end
         end
-
-        SitemapGenerator::Sitemap.finalize!
 
         sitemap = Middleman::Sitemap::Resource.new app.sitemap, 'sitemap.xml', File.join(tmp_path, 'sitemap.xml')
 
