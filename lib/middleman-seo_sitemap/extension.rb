@@ -9,12 +9,13 @@ module Middleman
       option :priority, 0.5, 'Default priority for pages'
       option :ping_search_engines, true, 'Automatically ping sitemap to search engines?'
       option :directory_indexes_enabled, true, 'Whether the application is using directory indexes'
+      option :include_by_default, true, 'Include all HTML files unless excluded in frontmatter?'
 
       def manipulate_resource_list(resources)
         tmp_path = File.expand_path '../../../tmp/sitemap', __FILE__
 
         pages =
-          app.sitemap.resources.select{ |r| r.content_type && r.content_type.include?("html") }.map do |r|
+          app.sitemap.resources.select{ |r| r.content_type && r.content_type.include?("html") && r.data.fetch(:include_in_sitemap, options.include_by_default) }.map do |r|
             url = if options.directory_indexes_enabled && r.url != '/'
                     r.url.chomp('.html') + '/'
                   else
